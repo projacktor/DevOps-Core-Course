@@ -41,12 +41,12 @@ def get_system_info():
     }
 
 # Uptime Tracking
-STRAT_TIME = datetime.now()
+START_TIME = datetime.now()
 
 
 def get_uptime():
     """Calculate service uptime."""
-    delta = datetime.now() - STRAT_TIME
+    delta = datetime.now() - START_TIME
     seconds = int(delta.total_seconds())
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
