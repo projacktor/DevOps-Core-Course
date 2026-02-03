@@ -12,3 +12,14 @@ docs
 
 # Tests unneeded in production
 tests
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
