@@ -1,0 +1,14 @@
+# VCS
+.git
+
+# Python env
+.venv
+venv
+__pycache__
+
+# Documentation
+docs
+*.md
+
+# Tests unneeded in production
+tests
