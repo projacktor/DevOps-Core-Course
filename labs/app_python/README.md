@@ -174,6 +174,49 @@ The application follows a simple but robust architecture:
 - **Logging**: Structured logging for observability
 - **Configuration**: Environment-based configuration for different deployment scenarios
 
+## Docker
+
+### Running the Container
+
+```bash
+# Run in background with port mapping
+docker run -d -p 8080:8080 -e HOST=0.0.0.0 --name python-info-app python-info-service
+
+# Run interactively for debugging
+docker run -it -p 8080:8080 -e HOST=0.0.0.0 python-info-service
+
+# Run with custom environment variables
+docker run -d -p 3000:3000 -e HOST=0.0.0.0 -e PORT=3000 -e DEBUG=true --name python-info-app python-info-service
+```
+
+### Pulling from Docker Hub
+
+```bash
+# Pull the latest image
+docker pull projacktor/python-info-service:latest
+
+# Pull specific version
+docker pull projacktor/python-info-service:v1.0.0
+
+# Run from Docker Hub image
+docker run -d -p 8080:8080 -e HOST=0.0.0.0 --name python-info-app projacktor/python-info-service:latest
+```
+
+### Container Management
+
+```bash
+# Check running containers
+docker ps
+
+# View container logs
+docker logs python-info-app
+
+# Stop and remove container
+docker stop python-info-app && docker rm python-info-app
+```
+
+**Important:** Always use `-e HOST=0.0.0.0` when running the container to make the application accessible from outside the container.
+
 ## Development
 
 ### Code Style
