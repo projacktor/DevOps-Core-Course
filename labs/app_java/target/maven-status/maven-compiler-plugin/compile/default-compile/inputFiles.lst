@@ -1,0 +1,10 @@
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/model/HealthResponse.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/model/ServiceResponse.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/model/ServiceInfo.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/InfoServiceApplication.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/model/RequestInfo.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/service/InfoService.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/controller/InfoController.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/model/RuntimeInfo.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/model/SystemInfo.java
+/home/projacktor/Projects/edu/DevOps-Core-Course/labs/app_java/src/main/java/com/devops/infoservice/model/EndpointInfo.java
