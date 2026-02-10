@@ -22,7 +22,7 @@ def test_get_system_info():
 
 
 def test_get_uptime():
-    from datetime import datetime, timedelta
+    from datetime import datetime
     
     with patch('app.START_TIME', datetime(2026, 1, 1, 12, 0, 0)), \
          patch('app.datetime') as mock_datetime:

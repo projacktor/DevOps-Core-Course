@@ -1,0 +1,10 @@
+com/devops/infoservice/service/InfoService.class
+com/devops/infoservice/model/RequestInfo.class
+com/devops/infoservice/model/RuntimeInfo.class
+com/devops/infoservice/model/ServiceInfo.class
+com/devops/infoservice/controller/InfoController.class
+com/devops/infoservice/model/ServiceResponse.class
+com/devops/infoservice/InfoServiceApplication.class
+com/devops/infoservice/model/SystemInfo.class
+com/devops/infoservice/model/EndpointInfo.class
+com/devops/infoservice/model/HealthResponse.class
