@@ -75,8 +75,6 @@ jobs:
           images: ${{ secrets.DOCKER_USERNAME }}/python-info-service
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{date 'YYYYMMDD'}}-
             type=raw,value=latest
 
