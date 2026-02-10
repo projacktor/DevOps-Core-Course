@@ -3,13 +3,18 @@ name: Python CI
 on:
   push:
     branches: [lab*, main]
+    paths:
+      - "labs/app_python/**"
     tags:
       - "v*"
   pull_request:
+    paths:
+      - "labs/app_python/**"
 
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'docs') && !contains(github.event.pull_request.title, 'docs')"
     defaults:
       run:
         working-directory: labs/app_python
