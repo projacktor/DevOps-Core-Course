@@ -27,6 +27,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      - name: Install Snyk CLI
+        run: |
+          curl -Lo ./snyk https://github.com/snyk/cli/releases/latest/download/snyk-linux
+          chmod +x ./snyk
+          sudo mv ./snyk /usr/local/bin/
+
+      - name: Run Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk auth $SNYK_TOKEN
+          snyk test --severity-threshold=high
+
       - name: Lint code
         run: |
           flake8 .
@@ -64,8 +77,8 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix={{date 'YYYYMMDD'}}-
+            type=raw,value=latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
