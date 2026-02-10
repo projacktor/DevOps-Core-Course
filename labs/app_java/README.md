@@ -253,5 +253,5 @@ The project follows Java best practices:
 - **JSON Caching**: Jackson object mapper reuse
 - **Efficient Collections**: Minimal object allocation
 
-[![Java CI](https://github.com/<USERNAME>/<REPO>/actions/workflows/java-ci.yml/badge.svg)](https://github.com/<USERNAME>/<REPO>/actions/workflows/java-ci.yml)
+[![Java CI/CD](https://github.com/<USERNAME>/<REPO>/actions/workflows/java-ci.yml/badge.svg)](https://github.com/<USERNAME>/<REPO>/actions/workflows/java-ci.yml)
 [![codecov](https://codecov.io/gh/<USERNAME>/<REPO>/branch/main/graph/badge.svg)](https://codecov.io/gh/<USERNAME>/<REPO>)
