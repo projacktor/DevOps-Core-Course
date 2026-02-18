@@ -276,6 +276,8 @@ Terraform has compared your real infrastructure against your configuration and f
 differences, so no changes are needed.
 ```
 
+## Task 2 Pulumni
+
 Terraform destroy:
 
 ```sh
@@ -510,5 +512,89 @@ aws_security_group.devops-firewall: Destruction complete after 2s
 Destroy complete! Resources: 2 destroyed.
 ```
 
-## Task 2 Pulumni
+Pulumni installation
 
+```sh
+curl -fsSL https://get.pulumi.com | sh
+fish_add_path ~/.pulumi/bin
+pulumi version
+v3.221.0
+```
+
+[Pulumi getting started guide](https://www.pulumi.com/docs/iac/get-started/aws/create-project/)
+
+Deployment (after some troubleshooting)
+
+```sh
+projacktor@projacktorLaptop ~/P/e/D/l/pulumi (lab4) [SIGINT]> pulumi preview
+Previewing update (projacktor/dev)
+
+View in Browser (Ctrl+O): https://app.pulumi.com/projacktor/devops-lab/dev/previews/88b6308a-a62d-4a90-97ec-a0e60443e845
+
+     Type                 Name            Plan        Info
+     pulumi:pulumi:Stack  devops-lab-dev              
+ +-  └─ aws:ec2:Instance  devops-lab      replace     [diff: ~ami,rootBlockDevice
+
+Resources:
+    +-1 to replace
+    3 unchanged
+
+projacktor@projacktorLaptop ~/P/e/D/l/pulumi (lab4)> pulumi up
+Previewing update (projacktor/dev)
+
+View in Browser (Ctrl+O): https://app.pulumi.com/projacktor/devops-lab/dev/previews/96a545b7-ab69-45d3-8eb6-5474fb388874
+
+     Type                 Name            Plan        Info
+     pulumi:pulumi:Stack  devops-lab-dev              
+ +-  └─ aws:ec2:Instance  devops-lab      replace     [diff: ~ami,rootBlockDevice
+
+Resources:
+    +-1 to replace
+    3 unchanged
+
+Do you want to perform this update? yes
+Updating (projacktor/dev)
+
+View in Browser (Ctrl+O): https://app.pulumi.com/projacktor/devops-lab/dev/updates/4
+
+     Type                 Name            Status             Info
+     pulumi:pulumi:Stack  devops-lab-dev                     
+ +-  └─ aws:ec2:Instance  devops-lab      replaced (35s)     [diff: ~ami,rootBloc
+
+Outputs:
+  ~ instancePublicIp: "107.20.95.190" => "23.20.145.103"
+
+Resources:
+    +-1 replaced
+    3 unchanged
+
+Duration: 1m0s
+
+projacktor@projacktorLaptop ~/P/e/D/l/pulumi (lab4)> ssh -i ../terraform/labsuser.
+pem -o IdentitiesOnly=yes ubuntu@23.20.145.103
+The authenticity of host '23.20.145.103 (23.20.145.103)' can't be established.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '23.20.145.103' (ED25519) to the list of known hosts.
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-1018-aws x86_64)
+
+<...>
+
+ubuntu@ip-172-31-39-55:~$ 
+```
+
+I created the same instance with Pulumi but of course got new IP.
+
+### Comparison
+
+IMO, using Terraform is easier by several reasons:
+
+- declarative style requires less code written
+- variables managment more intuitive and almost the same as `.env` maintaince
+- it works much faster
+
+However Pulumi has also its pros:
+- No need to know HCL language, more harmonic in projects with popular PL.
+- Has good troubleshooting support on its site (with AI assistant), well-written documentation
+
+I would prefer terraform because of its speed of deploying and managment if I'd be DevOps in a team. If I'd be a DevOps and coder at the same time, maybe pulumi suites better since switching from one language to another is hard.
