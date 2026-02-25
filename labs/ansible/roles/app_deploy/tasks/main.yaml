@@ -13,6 +13,11 @@
     source: pull
     force_source: yes
 
+- name: Remove existing container
+  docker_container:
+    name: "{{ app_container_name }}"
+    state: absent
+
 - name: Run application container
   docker_container:
     name: "{{ app_container_name }}"
@@ -34,7 +39,7 @@
 
 - name: Verify health endpoint
   uri:
-    url: "http://localhost:{{ app_host_port }}/health"
+    url: "http://127.0.0.1:{{ app_host_port }}/health"
     status_code: 200
     return_content: yes
   register: health_check
