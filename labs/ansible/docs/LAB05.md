@@ -94,3 +94,155 @@ We chose **`state: present`**.
 
 - **`state: present`**: Ensures the package is installed. If it's already there (even an older version), Ansible does nothing. This is **safer** for production because it prevents unexpected upgrades that might break applications.
 - **`state: latest`**: Always updates the package to the newest version available. This can be dangerous as it might introduce breaking changes uncontrollably.
+
+### 2.2 Docker Role
+
+We created the `docker` role to handle the installation and configuration of the Docker engine.
+
+**Role Structure:**
+
+- `defaults/main.yaml`: Defines variables for Docker packages (`docker-ce`, `docker-ce-cli`, etc.) and the user to be added to the docker group.
+- `handlers/main.yaml`: Contains the `restart docker` handler.
+- `tasks/main.yaml`: Implements the installation steps: adding GPG key, repository, installing packages, and starting the service.
+
+#### Implementation Details
+
+We followed the official Docker installation guide but translated it into Ansible tasks:
+
+1.  **GPG Key**: Downloaded using `get_url` to `/etc/apt/keyrings`.
+2.  **Repository**: Added using `apt_repository`. We used Ansible facts to dynamically determine the architecture (`amd64`) and OS release (`noble` for Ubuntu 24.04), making the role adaptable.
+3.  **Service**: We use the `service` module to ensure Docker is running and enabled on boot.
+4.  **User Group**: The `user` module adds `ubuntu` to the `docker` group, allowing non-root container management.
+
+---
+
+### 2.3 & 2.4 Provisioning Playbook & Idempotency
+
+We created `playbooks/provision.yml` to apply both `common` and `docker` roles to our `webservers`.
+
+```yaml
+---
+- name: Provision web servers
+  hosts: webservers
+  become: yes
+
+  roles:
+    - common
+    - docker
+```
+
+#### Idempotency Demonstration
+
+We executed the playbook twice to demonstrate Ansible's idempotency.
+
+**First Run Output:**
+
+```sh
+ansible-playbook playbooks/provision.yaml
+
+PLAY [Provision web servers] *************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************
+ok: [ubuntu]
+
+TASK [common : Update apt cache] *********************************************************************
+ok: [ubuntu]
+
+TASK [common : Install essential packages] ***********************************************************
+ok: [ubuntu]
+
+TASK [common : Set timezone] *************************************************************************
+changed: [ubuntu]
+
+TASK [docker : Install required system packages] *****************************************************
+ok: [ubuntu]
+
+TASK [docker : Create directory for Docker GPG key] **************************************************
+ok: [ubuntu]
+
+TASK [docker : Add Docker's official GPG key] ********************************************************
+changed: [ubuntu]
+
+TASK [docker : Add Docker repository] ****************************************************************
+changed: [ubuntu]
+
+TASK [docker : Install Docker packages] **************************************************************
+changed: [ubuntu]
+
+TASK [docker : Install python3-docker] ***************************************************************
+changed: [ubuntu]
+
+TASK [docker : Ensure Docker service is running and enabled] *****************************************
+ok: [ubuntu]
+
+TASK [docker : Add users to docker group] ************************************************************
+changed: [ubuntu] => (item=ubuntu)
+
+RUNNING HANDLER [docker : restart docker] ************************************************************
+changed: [ubuntu]
+
+PLAY RECAP *******************************************************************************************
+ubuntu                     : ok=13   changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+**Second Run Output:**
+
+```sh
+ansible-playbook playbooks/provision.yaml
+
+PLAY [Provision web servers] *************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************
+ok: [ubuntu]
+
+TASK [common : Update apt cache] *********************************************************************
+ok: [ubuntu]
+
+TASK [common : Install essential packages] ***********************************************************
+ok: [ubuntu]
+
+TASK [common : Set timezone] *************************************************************************
+ok: [ubuntu]
+
+TASK [docker : Install required system packages] *****************************************************
+ok: [ubuntu]
+
+TASK [docker : Create directory for Docker GPG key] **************************************************
+ok: [ubuntu]
+
+TASK [docker : Add Docker's official GPG key] ********************************************************
+ok: [ubuntu]
+
+TASK [docker : Add Docker repository] ****************************************************************
+ok: [ubuntu]
+
+TASK [docker : Install Docker packages] **************************************************************
+ok: [ubuntu]
+
+TASK [docker : Install python3-docker] ***************************************************************
+ok: [ubuntu]
+
+TASK [docker : Ensure Docker service is running and enabled] *****************************************
+ok: [ubuntu]
+
+TASK [docker : Add users to docker group] ************************************************************
+ok: [ubuntu] => (item=ubuntu)
+
+PLAY RECAP *******************************************************************************************
+ubuntu                     : ok=12   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+#### Analysis
+
+**First Run Analysis:**
+
+- **Changed Tasks**: `Set timezone`, `Add Docker's official GPG key`, `Add Docker repository`, `Install Docker packages`, `Install python3-docker`, `Add users to docker group`.
+- **Why**: This was a fresh installation. Ansible detected that these configurations or packages were missing on the target system and applied them to reach the desired state.
+- **Handler**: The `restart docker` handler ran because the installation tasks notified it.
+
+**Second Run Analysis:**
+
+- **Changed Tasks**: None (`changed=0`).
+- **Why**: Ansible checked the state of every resource. It found that the timezone was correct, packages were already installed, the GPG key existed, and the user was already in the group. Since the **actual state** matched the **desired state**, no actions were performed.
+
+**Conclusion:** This demonstrates **idempotency**. We can run this playbook 100 times, and it will not break the system or duplicate configurations; it ensures the system stays in the defined valid state.
