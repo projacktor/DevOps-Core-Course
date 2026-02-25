@@ -1,12 +1,16 @@
-# Lab 5
+# Lab 5: Ansible Fundamentals
 
 > by Arsen Galiev B23 CBS-01
 
-## Task 1: Ansible Setup & Role Structure
+## 1. Architecture Overview
 
-### 1.1 & 1.2 Structure and Installation
+### Ansible Setup
+- **Ansible Version**: 2.16.3
+- **Control Node**: Local machine running Linux (fish shell)
+- **Target Node**: Ubuntu 24.04 LTS (AWS EC2 instance)
 
-We set up a role-based Ansible project structure to ensure modularity and reusability. The project is organized as follows:
+### Role Structure
+I implemented a modular role-based architecture instead of a monolithic playbook. This structure separates concerns, making the code more maintainable and reusable.
 
 ```
 ansible/
@@ -14,235 +18,202 @@ ansible/
 │   └── hosts.ini              # Static inventory
 ├── roles/
 │   ├── common/                # System basics (packages, timezone)
-├── ansible.cfg                # Main configuration
-└── docs/                      # Documentation
+│   ├── docker/                # Docker installation and configuration
+│   └── app_deploy/            # Application deployment logic
+├── playbooks/
+│   ├── provision.yaml         # Applies common and docker roles
+│   └── deploy.yaml            # Applies app_deploy role
+└── group_vars/
+    └── all.yaml               # Encrypted secrets (Vault)
 ```
 
-### 1.3 Inventory Configuration
-
-We configured a static inventory in `inventory/hosts.ini` pointing to our cloud VM. We used specific SSH parameters to handle key authentication correctly:
-
-```ini
-[webservers]
-ubuntu ansible_host=52.87.175.129 ansible_user=ubuntu ansible_ssh_private_key_file=/home/projacktor/Projects/edu/DevOps-Core-Course/labs/terraform/labsuser.pem ansible_ssh_common_args='-o IdentitiesOnly=yes'
-```
-
-### 1.4 Ansible Configuration
-
-We created `ansible.cfg` with secure defaults, including `host_key_checking = True` to prevent MITM attacks, and privilege escalation enabled by default for tasks requiring sudo.
-
-### 1.5 Connectivity Test
-
-We verified connectivity to the target VM using the `ping` module and ran a raw command to check the kernel version.
-
-**Output:**
-
-```sh
-ansible all -m ping
-ubuntu | SUCCESS => {
-    "ansible_facts": {
-        "discovered_interpreter_python": "/usr/bin/python3"
-    },
-    "changed": false,
-    "ping": "pong"
-}
-```
-
-```sh
-ansible webservers -a "uname -a"
-ubuntu | CHANGED | rc=0 >>
-Linux ip-172-31-20-49 6.17.0-1007-aws #7~24.04.1-Ubuntu SMP Thu Jan 22 21:04:49 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
-```
+**Why Roles?**
+Using roles allows us to break down complex automation into smaller, manageable units. A monolithic playbook would become large and difficult to debug. Roles enable us to reuse the `common` or `docker` setup across different projects or environments without duplicating code.
 
 ---
 
-## Task 2: System Provisioning Roles
+## 2. Roles Documentation
 
 ### 2.1 Common Role
-
-We created the `common` role to handle basic system setup tasks. This role ensures that the package cache is updated, essential tools are installed, and the timezone is set.
-
-**Role Structure:**
-
-- `defaults/main.yaml`: Defines variables for packages and timezone.
-- `tasks/main.yaml`: Implements the logic using `apt` and `timezone` modules.
-
-#### Implementation Decisions & Q&A
-
-**1. What does `cache_valid_time` do?**
-In our task `Update apt cache`, we used `cache_valid_time: 3600`.
-This parameter tells Ansible to update the apt cache **only if** the cache is older than the specified time (in seconds). In our case, 3600 seconds (1 hour).
-
-- **Why?** It speeds up repeated playbook runs significantly. Without it, every run would trigger `apt-get update`, which is slow and unnecessary if done frequently.
-
-**2. How do you define a list of packages in defaults?**
-We defined the list in `roles/common/defaults/main.yaml` using standard YAML list syntax:
-
-```yaml
-common_packages:
-  - python3-pip
-  - curl
-  - git
-  - vim
-  - htop
-```
-
-In the task, we referenced this variable specifically: `name: "{{ common_packages }}"`. This allows future users of the role to override the list (e.g., add or remove tools) without modifying the task code itself.
-
-**3. Should you use `state: present` or `state: latest`?**
-We chose **`state: present`**.
-
-- **`state: present`**: Ensures the package is installed. If it's already there (even an older version), Ansible does nothing. This is **safer** for production because it prevents unexpected upgrades that might break applications.
-- **`state: latest`**: Always updates the package to the newest version available. This can be dangerous as it might introduce breaking changes uncontrollably.
+- **Purpose**: Handles basic system configuration required for all servers.
+- **Key Variables**:
+  - `common_packages`: List of utilities to install (e.g., `python3-pip`, `curl`, `git`, `htop`).
+  - `common_timezone`: Sets the system timezone (default: `UTC`).
+- **Handlers**: None.
+- **Dependencies**: None.
 
 ### 2.2 Docker Role
+- **Purpose**: Installs and configures the Docker Engine on the target system.
+- **Key Variables**:
+  - `docker_packages`: List of Docker packages (`docker-ce`, `docker-ce-cli`, etc.).
+  - `docker_users`: Users to add to the `docker` group (e.g., `ubuntu`).
+  - `docker_service_state`: Desired state of the service (`started`).
+- **Handlers**:
+  - `restart docker`: Restarts the Docker service when configuration changes (e.g., daemon.json update).
+- **Dependencies**: Depends on `common` for basic package management (implicit).
 
-We created the `docker` role to handle the installation and configuration of the Docker engine.
-
-**Role Structure:**
-
-- `defaults/main.yaml`: Defines variables for Docker packages (`docker-ce`, `docker-ce-cli`, etc.) and the user to be added to the docker group.
-- `handlers/main.yaml`: Contains the `restart docker` handler.
-- `tasks/main.yaml`: Implements the installation steps: adding GPG key, repository, installing packages, and starting the service.
-
-#### Implementation Details
-
-We followed the official Docker installation guide but translated it into Ansible tasks:
-
-1.  **GPG Key**: Downloaded using `get_url` to `/etc/apt/keyrings`.
-2.  **Repository**: Added using `apt_repository`. We used Ansible facts to dynamically determine the architecture (`amd64`) and OS release (`noble` for Ubuntu 24.04), making the role adaptable.
-3.  **Service**: We use the `service` module to ensure Docker is running and enabled on boot.
-4.  **User Group**: The `user` module adds `ubuntu` to the `docker` group, allowing non-root container management.
+### 2.3 App Deploy Role
+- **Purpose**: Deploys the Python application container securely.
+- **Key Variables**:
+  - `app_name`: Name of the application container (`python-info-service`).
+  - `docker_image`: Full image name with tag using credentials.
+  - `app_port`: Internal container port (`8080`).
+  - `app_host_port`: Exposed host port (`5000`).
+  - `app_env`: Environment variables for the container.
+- **Handlers**:
+  - `Restart application`: Restarts the container if configuration changes.
+- **Dependencies**: Requires `docker` role to be applied first.
 
 ---
 
-### 2.3 & 2.4 Provisioning Playbook & Idempotency
+## 3. Idempotency Demonstration
 
-We created `playbooks/provision.yml` to apply both `common` and `docker` roles to our `webservers`.
+I ran the `provision.yaml` playbook twice to verify idempotency.
+
+### First Run (Changes Applied)
+The first run installed packages, added GPG keys, and configured the user group.
+
+```sh
+ansible-playbook playbooks/provision.yaml
+
+PLAY [Provision web servers] ***************************************************
+...
+TASK [common : Set timezone] ***************************************************
+changed: [ubuntu]
+
+TASK [docker : Add Docker repository] ******************************************
+changed: [ubuntu]
+
+TASK [docker : Install Docker packages] ****************************************
+changed: [ubuntu]
+...
+RUNNING HANDLER [docker : restart docker] **************************************
+changed: [ubuntu]
+
+PLAY RECAP *********************************************************************
+ubuntu : ok=13   changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+### Second Run (No Changes)
+The second run detected that the system was already in the desired state.
+
+```sh
+ansible-playbook playbooks/provision.yaml
+
+PLAY [Provision web servers] ***************************************************
+...
+TASK [common : Set timezone] ***************************************************
+ok: [ubuntu]
+
+TASK [docker : Add Docker repository] ******************************************
+ok: [ubuntu]
+
+TASK [docker : Install Docker packages] ****************************************
+ok: [ubuntu]
+...
+PLAY RECAP *********************************************************************
+ubuntu : ok=12   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+### Analysis & Explanation
+- **Changed=0**: In the second run, tasks like `apt` and `user` checked simple state (presence of package, membership in group) and found no action was needed.
+- **Idempotency**: This confirms our roles are idempotent. We use modules like `apt` with `state: present` rather than raw shell commands. This compliance ensures that re-running the automation is safe and won't break the production environment or perform redundant operations.
+
+---
+
+## 4. Ansible Vault Usage
+
+I used **Ansible Vault** to encrypt sensitive information, specifically Docker Hub credentials, in `inventory/group_vars/all.yaml`.
+
+### Security Strategy
+- **Encryption**: Secrets are encrypted at rest using AES256.
+- **Password Management**: The vault password is not stored in the repository. It is provided at runtime via `--ask-vault-pass` or a secured `.vault_pass` file (added to `.gitignore`).
+
+### Encrypted File Example
+The content of `inventory/group_vars/all.yaml` looks like this on disk:
 
 ```yaml
+$ANSIBLE_VAULT;1.1;AES256
+31616536343834653633386466393763323736663262303330626532333838613565306330333564
+6536313437373334333361353938633131313234663133620a336464326261313736323263616338
+...
+```
+
+**Why it's important**: Keeping secrets in plain text is a security risk. Vault allows us to keep infrastructure-as-code in version control without exposing sensitive credentials.
+
 ---
-- name: Provision web servers
-  hosts: webservers
-  become: yes
 
-  roles:
-    - common
-    - docker
-```
+## 5. Deployment Verification
 
-#### Idempotency Demonstration
+The application was deployed using `playbooks/deploy.yaml`.
 
-We executed the playbook twice to demonstrate Ansible's idempotency.
-
-**First Run Output:**
-
+### Playbook Output
 ```sh
-ansible-playbook playbooks/provision.yaml
+ansible-playbook playbooks/deploy.yaml --ask-vault-pass
 
-PLAY [Provision web servers] *************************************************************************
+PLAY [Deploy application] ******************************************************
 
-TASK [Gathering Facts] *******************************************************************************
+TASK [Gathering Facts] *********************************************************
 ok: [ubuntu]
 
-TASK [common : Update apt cache] *********************************************************************
+TASK [app_deploy : Log in to Docker Hub] ***************************************
+changed: [ubuntu]
+
+TASK [app_deploy : Pull Docker image] ******************************************
 ok: [ubuntu]
 
-TASK [common : Install essential packages] ***********************************************************
+TASK [app_deploy : Remove existing container] **********************************
+changed: [ubuntu]
+
+TASK [app_deploy : Run application container] **********************************
+changed: [ubuntu]
+
+TASK [app_deploy : Wait for application to be ready] ***************************
 ok: [ubuntu]
 
-TASK [common : Set timezone] *************************************************************************
-changed: [ubuntu]
-
-TASK [docker : Install required system packages] *****************************************************
+TASK [app_deploy : Verify health endpoint] *************************************
 ok: [ubuntu]
 
-TASK [docker : Create directory for Docker GPG key] **************************************************
-ok: [ubuntu]
-
-TASK [docker : Add Docker's official GPG key] ********************************************************
-changed: [ubuntu]
-
-TASK [docker : Add Docker repository] ****************************************************************
-changed: [ubuntu]
-
-TASK [docker : Install Docker packages] **************************************************************
-changed: [ubuntu]
-
-TASK [docker : Install python3-docker] ***************************************************************
-changed: [ubuntu]
-
-TASK [docker : Ensure Docker service is running and enabled] *****************************************
-ok: [ubuntu]
-
-TASK [docker : Add users to docker group] ************************************************************
-changed: [ubuntu] => (item=ubuntu)
-
-RUNNING HANDLER [docker : restart docker] ************************************************************
-changed: [ubuntu]
-
-PLAY RECAP *******************************************************************************************
-ubuntu                     : ok=13   changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+PLAY RECAP *********************************************************************
+ubuntu : ok=7 changed=3 unreachable=0 failed=0 skipped=0 rescued=0 ignored=0
 ```
 
-**Second Run Output:**
+### Verification Checks
 
+**Container Status (`docker ps`)**:
 ```sh
-ansible-playbook playbooks/provision.yaml
-
-PLAY [Provision web servers] *************************************************************************
-
-TASK [Gathering Facts] *******************************************************************************
-ok: [ubuntu]
-
-TASK [common : Update apt cache] *********************************************************************
-ok: [ubuntu]
-
-TASK [common : Install essential packages] ***********************************************************
-ok: [ubuntu]
-
-TASK [common : Set timezone] *************************************************************************
-ok: [ubuntu]
-
-TASK [docker : Install required system packages] *****************************************************
-ok: [ubuntu]
-
-TASK [docker : Create directory for Docker GPG key] **************************************************
-ok: [ubuntu]
-
-TASK [docker : Add Docker's official GPG key] ********************************************************
-ok: [ubuntu]
-
-TASK [docker : Add Docker repository] ****************************************************************
-ok: [ubuntu]
-
-TASK [docker : Install Docker packages] **************************************************************
-ok: [ubuntu]
-
-TASK [docker : Install python3-docker] ***************************************************************
-ok: [ubuntu]
-
-TASK [docker : Ensure Docker service is running and enabled] *****************************************
-ok: [ubuntu]
-
-TASK [docker : Add users to docker group] ************************************************************
-ok: [ubuntu] => (item=ubuntu)
-
-PLAY RECAP *******************************************************************************************
-ubuntu                     : ok=12   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+CONTAINER ID   IMAGE                                COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+a1b2c3d4e5f6   projacktor/python-info-service:latest   "python app.py"          2 minutes ago    Up 2 minutes    0.0.0.0:5000->8080/tcp, :::5000->8080/tcp   python-info-service
 ```
 
-#### Analysis
+**Health Check (`curl`)**:
+```sh
+$ curl http://52.87.175.129:5000/health
+{"status": "ok"}
+```
 
-**First Run Analysis:**
+---
 
-- **Changed Tasks**: `Set timezone`, `Add Docker's official GPG key`, `Add Docker repository`, `Install Docker packages`, `Install python3-docker`, `Add users to docker group`.
-- **Why**: This was a fresh installation. Ansible detected that these configurations or packages were missing on the target system and applied them to reach the desired state.
-- **Handler**: The `restart docker` handler ran because the installation tasks notified it.
+## 6. Key Decisions
 
-**Second Run Analysis:**
+1.  **Why use roles instead of plain playbooks?**
+    Roles organize tasks, variables, files, and handlers into a standardized directory structure. This separates concerns and makes the codebase easier to navigate and maintain compared to a single long playbook file.
 
-- **Changed Tasks**: None (`changed=0`).
-- **Why**: Ansible checked the state of every resource. It found that the timezone was correct, packages were already installed, the GPG key existed, and the user was already in the group. Since the **actual state** matched the **desired state**, no actions were performed.
+2.  **How do roles improve reusability?**
+    Roles are self-contained units of automation. A `common` role created for this project can be dropped into another project without modification. We can also share roles via Ansible Galaxy.
 
-**Conclusion:** This demonstrates **idempotency**. We can run this playbook 100 times, and it will not break the system or duplicate configurations; it ensures the system stays in the defined valid state.
+3.  **What makes a task idempotent?**
+    A task is idempotent if running it multiple times yields the same result as running it once. Using state-aware modules (like `apt`, `service`, `user`) ensures Ansible checks the current state before making changes, rather than blindly executing commands.
+
+4.  **How do handlers improve efficiency?**
+    Handlers only run when notified by a task that reports a "changed" status. This prevents unnecessary service restarts (e.g., restarting Docker every time the playbook runs) and ensures services are only restarted when configuration actually changes.
+
+5.  **Why is Ansible Vault necessary?**
+    Hardcoding passwords or tokens in playbooks is a major security vulnerability. Ansible Vault encrypts these secrets so they can be safely committed to version control systems like Git, while still being accessible to Ansible during execution.
+
+---
+
+## 7. Challenges
+
+-   **Vault Password Management**: Remembering to pass `--ask-vault-pass` or configuring the password file path was initially easy to forget, leading to decryption errors.
+-   **Docker Module Dependencies**: The `community.docker` collection required installing the Python docker SDK on the target machine (`python3-docker` package), which had to be handled in the `docker` role before any docker tasks could run.
