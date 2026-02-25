@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Config
-HOST = os.getenv("HOST", "127.0.0.1")
+HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", 8080))
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
