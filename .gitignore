@@ -3,6 +3,8 @@
 
 ### Ansible ###
 *.retry
+labs/ansible/inventory/group_vars/all.yaml
+labs/ansible/inventory/group_vars/*.yaml
 
 ### Git ###
 # Created by git for backups. To disable backups in Git:
