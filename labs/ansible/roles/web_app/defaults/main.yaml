@@ -4,3 +4,11 @@ web_app_host_port: 5000
 web_app_container_name: python-info-service
 web_app_restart_policy: unless-stopped
 web_app_env: {}
+
+# Docker Hub Credentials
+web_app_docker_user: "{{ dockerhub_username }}"
+web_app_docker_pass: "{{ dockerhub_password }}"
+
+# Image Configuration
+web_app_image: "{{ docker_image }}"
+web_app_image_tag: "{{ docker_image_tag | default('latest') }}"
