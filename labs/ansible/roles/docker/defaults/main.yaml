@@ -10,4 +10,4 @@ docker_users:
   - ubuntu
 
 docker_service_state: started
-docker_service_enabled: yes
+docker_service_enabled: true

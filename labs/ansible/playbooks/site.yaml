@@ -1,0 +1,6 @@
+---
+- name: Provision stage
+  import_playbook: provision.yaml
+
+- name: Deploy stage
+  import_playbook: deploy.yaml

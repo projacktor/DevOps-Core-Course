@@ -1,55 +1,55 @@
 ---
 - name: Include wipe tasks
-  include_tasks: wipe.yaml
+  ansible.builtin.include_tasks: wipe.yaml
   tags:
     - web_app_wipe
 
 - name: Deploy application with Docker Compose
+  tags:
+    - app_deploy
+    - compose
   block:
     - name: Log in to Docker Hub
       community.docker.docker_login:
         username: "{{ web_app_docker_user }}"
         password: "{{ web_app_docker_pass }}"
-        reauthorize: yes
+        reauthorize: true
       no_log: true
 
     - name: Create app directory
-      file:
+      ansible.builtin.file:
         path: "/opt/{{ web_app_container_name }}"
         state: directory
         mode: "0755"
 
     - name: Template docker-compose file
-      template:
+      ansible.builtin.template:
         src: compose.yaml.j2
         dest: "/opt/{{ web_app_container_name }}/compose.yaml"
+        mode: "0644"
 
     - name: Ensure legacy container is removed (migration)
       community.docker.docker_container:
         name: "{{ web_app_container_name }}"
         state: absent
-        force_kill: yes
-      ignore_errors: true
+        force_kill: true
+      failed_when: false
 
     - name: Deploy with docker-compose
       community.docker.docker_compose_v2:
         project_src: "/opt/{{ web_app_container_name }}"
         state: present
         pull: always
-        remove_orphans: yes
-      register: compose_output
+        remove_orphans: true
+      register: web_app_compose_output
 
   rescue:
     - name: Handle deployment failure
-      debug:
+      ansible.builtin.debug:
         msg: "Deployment failed. Check docker logs or system status."
 
-  tags:
-    - app_deploy
-    - compose
-
 - name: Wait for application to be ready
-  wait_for:
+  ansible.builtin.wait_for:
     port: "{{ web_app_host_port }}"
     delay: 5
     timeout: 60
@@ -58,12 +58,12 @@
     - compose
 
 - name: Verify health endpoint
-  uri:
+  ansible.builtin.uri:
     url: "http://127.0.0.1:{{ web_app_host_port }}/health"
     status_code: 200
-    return_content: yes
-  register: health_check
-  until: health_check.status == 200
+    return_content: true
+  register: web_app_health_check
+  until: web_app_health_check.status == 200
   retries: 5
   delay: 2
   tags:

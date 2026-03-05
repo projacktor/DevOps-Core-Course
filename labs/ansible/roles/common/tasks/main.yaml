@@ -1,40 +1,40 @@
 ---
 - name: Package setup
+  become: true
+  tags:
+    - packages
   block:
     - name: Update apt cache
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
         cache_valid_time: 3600
 
     - name: Install essential packages
-      apt:
+      ansible.builtin.apt:
         name: "{{ common_packages }}"
         state: present
 
   rescue:
     - name: Fix apt dependencies
-      command: apt-get update --fix-missing
+      ansible.builtin.apt:
+        update_cache: true
 
   always:
     - name: Log package installation
-      file:
+      ansible.builtin.file:
         path: /tmp/packages_installed.log
         state: touch
-
-  become: true
-  tags:
-    - packages
+        mode: "0644"
 
 - name: User setup
-  block:
-    - name: User creation
-      debug:
-        msg: "User creation tasks would be placed here."
-
   become: true
   tags:
     - users
+  block:
+    - name: User creation
+      ansible.builtin.debug:
+        msg: "User creation tasks would be placed here."
 
 - name: Set timezone
-  timezone:
+  community.general.timezone:
     name: "{{ common_timezone }}"
