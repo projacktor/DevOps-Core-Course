@@ -1,6 +1,0 @@
----
-app_port: 8080
-app_host_port: 5000
-app_container_name: python-info-service
-app_restart_policy: unless-stopped
-app_env: {}

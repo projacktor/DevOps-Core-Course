@@ -1,0 +1,6 @@
+---
+web_app_port: 8080
+web_app_host_port: 5000
+web_app_container_name: python-info-service
+web_app_restart_policy: unless-stopped
+web_app_env: {}
