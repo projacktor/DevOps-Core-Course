@@ -58,6 +58,7 @@ jobs:
           cd labs/ansible
           echo "$ANSIBLE_VAULT_PASSWORD" > /tmp/vault_pass
           ansible-playbook playbooks/deploy.yaml \
+            -i inventory/hosts.ini \
             --vault-password-file /tmp/vault_pass \
             --tags "app_deploy"
           rm /tmp/vault_pass
