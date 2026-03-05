@@ -1,13 +1,39 @@
 ---
-- name: Update apt cache
-  apt:
-    update_cache: yes
-    cache_valid_time: 3600
+- name: Package setup
+  block:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
 
-- name: Install essential packages
-  apt:
-    name: "{{ common_packages }}"
-    state: present
+    - name: Install essential packages
+      apt:
+        name: "{{ common_packages }}"
+        state: present
+
+  rescue:
+    - name: Fix apt dependencies
+      command: apt-get update --fix-missing
+
+  always:
+    - name: Log package installation
+      file:
+        path: /tmp/packages_installed.log
+        state: touch
+
+  become: true
+  tags:
+    - packages
+
+- name: User setup
+  block:
+    - name: User creation
+      debug:
+        msg: "User creation tasks would be placed here."
+
+  become: true
+  tags:
+    - users
 
 - name: Set timezone
   timezone:
