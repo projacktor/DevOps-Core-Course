@@ -12,3 +12,10 @@ web_app_docker_pass: "{{ dockerhub_password }}"
 # Image Configuration
 web_app_image: "{{ docker_image }}"
 web_app_image_tag: "{{ docker_image_tag | default('latest') }}"
+
+# Wipe logic
+web_app_wipe: false
+
+# Set to true to remove application completely
+# Wipe only:    ansible-playbook deploy.yml -e "web_app_wipe=true" --tags web_app_wipe
+# Clean install: ansible-playbook deploy.yml -e "web_app_wipe=true"
