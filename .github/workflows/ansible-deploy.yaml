@@ -2,14 +2,14 @@ name: Ansible Deployment
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, lab*]
     paths:
-      - "ansible/**"
-      - ".github/workflows/ansible-deploy.yml"
+      - "labs/ansible/**"
+      - ".github/workflows/ansible-deploy.yaml"
   pull_request:
-    branches: [main, master]
+    branches: [main, master, lab*]
     paths:
-      - "ansible/**"
+      - "labs/ansible/**"
 
 jobs:
   lint:
@@ -30,8 +30,8 @@ jobs:
 
       - name: Run ansible-lint
         run: |
-          cd ansible
-          ansible-lint playbooks/*.yml
+          cd labs/ansible
+          ansible-lint playbooks/*.yaml
 
   deploy:
     name: Deploy Application
@@ -45,9 +45,9 @@ jobs:
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
         run: |
-          cd ansible
+          cd labs/ansible
           echo "$ANSIBLE_VAULT_PASSWORD" > /tmp/vault_pass
-          ansible-playbook playbooks/deploy.yml \
+          ansible-playbook playbooks/deploy.yaml \
             --vault-password-file /tmp/vault_pass \
             --tags "app_deploy"
           rm /tmp/vault_pass
