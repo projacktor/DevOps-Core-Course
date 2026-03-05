@@ -1,0 +1,29 @@
+---
+- name: Wipe web application
+  block:
+    - name: Stop and remove containers (Compose down)
+      community.docker.docker_compose_v2:
+        project_src: "/opt/{{ web_app_container_name }}"
+        state: absent
+        remove_orphans: yes
+      ignore_errors: true
+
+    - name: Remove application directory
+      file:
+        path: "/opt/{{ web_app_container_name }}"
+        state: absent
+
+    - name: Remove Docker image (optional cleanup)
+      community.docker.docker_image:
+        name: "{{ web_app_image }}:{{ web_app_image_tag }}"
+        state: absent
+        force_absent: yes
+      ignore_errors: true
+
+    - name: Log wipe completion
+      debug:
+        msg: "Application {{ web_app_container_name }} wiped successfully"
+
+  when: web_app_wipe | default(false) | bool
+  tags:
+    - web_app_wipe

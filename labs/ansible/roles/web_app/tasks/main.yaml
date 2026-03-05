@@ -1,4 +1,9 @@
 ---
+- name: Include wipe tasks
+  include_tasks: wipe.yaml
+  tags:
+    - web_app_wipe
+
 - name: Deploy application with Docker Compose
   block:
     - name: Log in to Docker Hub
