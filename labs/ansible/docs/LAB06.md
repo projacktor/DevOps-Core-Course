@@ -999,3 +999,21 @@ Wipe done, all good.
 
 ## Task 4: CI/CD
 
+Evidence:
+- Ansible lint went well^
+```sh
+
+Run cd labs/ansible
+  cd labs/ansible
+  ansible-lint playbooks/*.yaml
+  shell: /usr/bin/bash -e {0}
+  env:
+    pythonLocation: /opt/hostedtoolcache/Python/3.12.12/x64
+    PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.12/x64/lib/pkgconfig
+    Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.12/x64
+    Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.12/x64
+    Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.12/x64
+    LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.12/x64/lib
+
+Passed: 0 failure(s), 0 warning(s) in 13 files processed of 13 encountered. Last profile that met the validation criteria was 'production'.
+```
