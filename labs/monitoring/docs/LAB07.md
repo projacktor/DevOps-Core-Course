@@ -1,0 +1,5 @@
+![grafana output](image-1.png)
+![json output](image.png)
+![logql query1](image-2.png)
+![logql query2](image-3.png)
+![logql query3](image-4.png)
