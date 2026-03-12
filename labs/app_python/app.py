@@ -9,18 +9,68 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import uvicorn
 
 import logging
+import json
+import time
 import platform
 import socket
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 app = FastAPI()
 
-# Logging configuration
-# in case of FastAPI is a bit excess
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# Structured JSON logging
+
+
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        record_time = datetime.fromtimestamp(record.created, timezone.utc).isoformat()
+        obj = {
+            "timestamp": record_time,
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        # include extra fields attached to the record
+        for k, v in record.__dict__.items():
+            if k in (
+                "name",
+                "msg",
+                "args",
+                "levelname",
+                "levelno",
+                "exc_info",
+                "exc_text",
+                "stack_info",
+                "lineno",
+                "pathname",
+                "filename",
+                "module",
+                "funcName",
+                "created",
+                "msecs",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "processName",
+                "process",
+            ):
+                continue
+            try:
+                json.dumps({k: v})
+                obj[k] = v
+            except Exception:
+                obj[k] = str(v)
+        if record.exc_info:
+            obj["exc_info"] = self.formatException(record.exc_info)
+        return json.dumps(obj)
+
+
+handler = logging.StreamHandler()
+handler.setFormatter(JSONFormatter())
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.handlers = [handler]
+
 logger = logging.getLogger(__name__)
 
 # Config
@@ -57,9 +107,7 @@ def get_uptime():
 
 # Exception Handlers
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(
-        request: Request,
-        exc: StarletteHTTPException):
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     if exc.status_code == 404:
         # don't log a traceback for expected 404s
         logger.warning(
@@ -84,8 +132,9 @@ async def http_exception_handler(
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception(
-        f"Unhandled exception while processing request {
-            request.url.path}")
+        "Unhandled exception while processing request",
+        extra={"path": request.url.path if request.url else None},
+    )
     return JSONResponse(
         status_code=500,
         content={
@@ -95,17 +144,51 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    client_ip = request.client.host if request.client else None
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "request_error",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "client_ip": client_ip,
+            },
+        )
+        raise
+    duration_ms = int((time.time() - start) * 1000)
+    logger.info(
+        "request",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "duration_ms": duration_ms,
+            "client_ip": client_ip,
+            "user_agent": request.headers.get("user-agent"),
+        },
+    )
+    return response
+
+
 # Endpoints
 @app.get("/")
 async def root(request: Request):
     """Main endpoint - service and system information."""
     logger.info(
-        "endpoint=root method=%s path=%s client=%s user_agent=%s uptime_seconds=%d",
-        request.method,
-        request.url.path,
-        request.client.host if request.client else "unknown",
-        request.headers.get("user-agent"),
-        get_uptime()["seconds"],
+        "endpoint",
+        extra={
+            "endpoint": "root",
+            "method": request.method,
+            "path": request.url.path,
+            "client": request.client.host if request.client else "unknown",
+            "user_agent": request.headers.get("user-agent"),
+            "uptime_seconds": get_uptime()["seconds"],
+        },
     )
     info = get_system_info()
     return {
@@ -146,9 +229,13 @@ async def root(request: Request):
 async def health():
     """Health check endpoint."""
     logger.info(
-        "endpoint=health status=healthy uptime_seconds=%d timestamp=%s",
-        get_uptime()["seconds"],
-        datetime.now().isoformat(),
+        "endpoint",
+        extra={
+            "endpoint": "health",
+            "status": "healthy",
+            "uptime_seconds": get_uptime()["seconds"],
+            "timestamp": datetime.now().isoformat(),
+        },
     )
     return {
         "status": "healthy",
