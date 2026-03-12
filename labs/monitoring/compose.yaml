@@ -45,6 +45,16 @@ services:
       - loki-network
     restart: unless-stopped
 
+  app-python:
+    image: projacktor/python-info-service:latest
+    ports:
+      - "5000:5000"
+    networks:
+      - loki-network
+    labels:
+      logging: "promtail"
+      app: "devops-python"
+
 volumes:
   loki-data:
     driver: local
