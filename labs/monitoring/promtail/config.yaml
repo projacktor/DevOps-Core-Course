@@ -30,6 +30,7 @@ scrape_configs:
         target_label: image
         replacement: "$1"
 
-filters:
-  - name: label
-    values: ["logging=promtail"]
+      # Keep only containers labeled logging=promtail
+      - source_labels: [__meta_docker_container_label_logging]
+        regex: "promtail"
+        action: keep
