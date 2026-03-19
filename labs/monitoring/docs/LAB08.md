@@ -98,7 +98,23 @@ scrape_configs:
 
 Grafana dashboards for Prometheus setup
 
-1) Setup Prometheus as a data source and start boards:
+Setup Prometheus as a data source and start boards:
 ![alt text](image-12.png)
 
-2) 
+1) Screenshot of your custom application dashboard with live data
+![alt text](image-14.png)
+
+Shows avg time of `get_system_info()` function.
+
+```promql
+sum(rate(devops_info_system_collection_seconds_sum[5m])) / sum(rate(devops_info_system_collection_seconds_count[5m]))
+```
+
+2) All 6+ panels working
+![alt text](image-13.png)   
+
+Import of `3662` dashboard
+
+![alt text](image-15.png)
+
+3) JSON exported dashboard here: [../prometheus/dashboard-my.json](../prometheus/dashboard-my.json)
