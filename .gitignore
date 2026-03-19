@@ -397,3 +397,4 @@ terraform.rc
 /test/
 *.pem
 /aws/
+test
