@@ -16,7 +16,26 @@ import socket
 from datetime import datetime, timezone
 import os
 
-app = FastAPI()
+from prometheus_client import (
+    Counter,
+    Histogram,
+    Gauge,
+    generate_latest,
+    CONTENT_TYPE_LATEST
+)
+
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup
+    cache_items.set(0)
+    db_pool_size.set(0)
+    yield
+    # shutdown (optional)
+
+app = FastAPI(lifespan=lifespan)
 
 # Structured JSON logging
 
@@ -82,14 +101,15 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 # System Information
 def get_system_info():
     """Collect system information."""
-    return {
-        "hostname": socket.gethostname(),
-        "platform_name": platform.system(),
-        "platform_version": platform.version(),
-        "architecture": platform.machine(),
-        "python_version": platform.python_version(),
-        "cpu_count": os.cpu_count(),
-    }
+    with system_info_duration.time():
+        return {
+            "hostname": socket.gethostname(),
+            "platform_name": platform.system(),
+            "platform_version": platform.version(),
+            "architecture": platform.machine(),
+            "python_version": platform.python_version(),
+            "cpu_count": os.cpu_count(),
+        }
 
 
 # Uptime Tracking
@@ -148,8 +168,16 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 async def log_requests(request: Request, call_next):
     start = time.time()
     client_ip = request.client.host if request.client else None
+
+    # low-cardinality endpoint label
+    route = request.scope.get("route")
+    endpoint = getattr(route, "path", None) or "unmatched"
+
+    http_requests_in_progress.inc()
+    status_code = 500
     try:
         response = await call_next(request)
+        status_code = response.status_code
     except Exception:
         logger.exception(
             "request_error",
@@ -160,13 +188,31 @@ async def log_requests(request: Request, call_next):
             },
         )
         raise
+    finally:
+        # Business metric: endpoint usage
+        endpoint_calls.labels(endpoint=endpoint).inc()
+
+        duration = time.time() - start
+        http_request_duration_seconds.labels(
+            method=request.method,
+            endpoint=endpoint
+        ).observe(duration)
+
+        http_requests_total.labels(
+            method=request.method,
+            endpoint=endpoint,
+            status=str(status_code)
+        ).inc()
+
+        http_requests_in_progress.dec()
+
     duration_ms = int((time.time() - start) * 1000)
     logger.info(
         "request",
         extra={
             "method": request.method,
             "path": request.url.path,
-            "status_code": response.status_code,
+            "status_code": status_code,
             "duration_ms": duration_ms,
             "client_ip": client_ip,
             "user_agent": request.headers.get("user-agent"),
@@ -179,13 +225,14 @@ async def log_requests(request: Request, call_next):
 @app.get("/")
 async def root(request: Request):
     """Main endpoint - service and system information."""
+    client_ip = request.client.host if request.client else "unknown"
     logger.info(
         "endpoint",
         extra={
             "endpoint": "root",
             "method": request.method,
             "path": request.url.path,
-            "client": request.client.host if request.client else "unknown",
+            "client": client_ip,
             "user_agent": request.headers.get("user-agent"),
             "uptime_seconds": get_uptime()["seconds"],
         },
@@ -213,7 +260,7 @@ async def root(request: Request):
             "timezone": datetime.now().astimezone().tzname(),
         },
         "request": {
-            "client_ip": request.client.host,
+            "client_ip": client_ip,
             "user_agent": request.headers.get("user-agent"),
             "method": request.method,
             "path": request.url.path,
@@ -250,7 +297,64 @@ async def favicon():
     return Response(status_code=204)
 
 
-if __name__ == "__main__":
-    logger.info("Application starting...")
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint."""
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-    uvicorn.run("app:app", host=HOST, port=PORT, reload=DEBUG)
+
+http_requests_total = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'status']
+)
+
+http_request_duration_seconds = Histogram(
+    'http_request_duration_seconds',
+    'HTTP request duration',
+    ['method', 'endpoint']
+)
+
+http_requests_in_progress = Gauge(
+    'http_requests_in_progress',
+    'HTTP requests currently being processed'
+)
+
+# Business / domain metrics (Beyond HTTP)
+# Track endpoint usage (separate from http_requests_total)
+endpoint_calls = Counter(
+    "devops_info_endpoint_calls",
+    "Endpoint calls",
+    ["endpoint"],
+)
+
+# Track system info collection time
+system_info_duration = Histogram(
+    "devops_info_system_collection_seconds",
+    "System info collection time",
+)
+
+# Examples for typical business metrics (wire them when you add the real integrations)
+external_service_calls = Counter(
+    "devops_info_external_service_calls_total",
+    "API calls to external services",
+    ["service", "result"],  # keep low-cardinality (e.g., result: ok|error|timeout)
+)
+
+cache_items = Gauge(
+    "devops_info_cache_items",
+    "Items in cache",
+)
+
+db_pool_size = Gauge(
+    "devops_info_db_pool_size",
+    "Current DB pool size",
+)
+
+if __name__ == "__main__":
+    uvicorn.run(
+        app,
+        host=HOST,
+        port=PORT,
+        reload=DEBUG,
+    )
