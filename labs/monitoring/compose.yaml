@@ -1,4 +1,23 @@
 services:
+  app-python:
+    container_name: devops-python
+    image: projacktor/python-info-service:latest
+    ports:
+      - "8080:8080"
+    networks:
+      - loki-network
+    labels:
+      logging: "promtail"
+      app: "devops-python"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
   loki:
     image: grafana/loki:3.0.0
     container_name: loki
@@ -83,29 +102,34 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  app-python:
-    container_name: devops-python
-    image: projacktor/python-info-service:latest
-    ports:
-      - "8080:8080"
+  prometheus:
+    image: prom/prometheus:v3.9.0
+    container_name: prometheus
+    ports: 
+      - "9000:9090"
+    volumes:
+      - ./prometheus/config.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    depends_on:
+      - loki
     networks:
       - loki-network
-    labels:
-      logging: "promtail"
-      app: "devops-python"
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
+          memory: 1G
+          cpus: '1.0'
 
 volumes:
   loki-data:
     driver: local
   grafana-data:
+    driver: local
+  prometheus-data:
     driver: local
 
 networks:
