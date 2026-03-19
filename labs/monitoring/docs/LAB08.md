@@ -118,3 +118,48 @@ Import of `3662` dashboard
 ![alt text](image-15.png)
 
 3) JSON exported dashboard here: [../prometheus/dashboard-my.json](../prometheus/dashboard-my.json)
+
+## Task 4
+
+1) `docker compose ps` healthy
+```bash
+docker compose ps
+NAME            IMAGE                                   COMMAND                  SERVICE      CREATED          STATUS                      PORTS
+devops-python   projacktor/python-info-service:latest   "python app.py"          app-python   38 minutes ago   Up 38 minutes               0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+grafana         grafana/grafana:12.3.1                  "/run.sh"                grafana      38 minutes ago   Up 38 minutes (healthy)     0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+loki            grafana/loki:3.0.0                      "/usr/bin/loki -conf…"   loki         38 minutes ago   Up 38 minutes (unhealthy)   0.0.0.0:3100->3100/tcp, [::]:3100->3100/tcp
+prometheus      prom/prometheus:v3.9.0                  "/bin/prometheus --c…"   prometheus   38 minutes ago   Up 38 minutes               0.0.0.0:9000->9090/tcp, [::]:9000->9090/tcp
+promtail        grafana/promtail:3.0.0                  "/usr/bin/promtail -…"   promtail     38 minutes ago   Up 38 minutes               0.0.0.0:9080->9080/tcp, [::]:9080->9080/tcp
+```
+
+2) Documentation of retention policies
+
+#### Prometheus retention policy
+Prometheus retention is configured via startup arguments in `compose.yaml`:
+
+- `--storage.tsdb.retention.time=15d`
+- `--storage.tsdb.retention.size=10GB`
+
+This means:
+- metrics are stored for a maximum of **15 days**;
+- or deleted earlier if the TSDB size exceeds **10GB**;
+- whichever limit is reached first (time or size) is triggered.
+
+Purpose of this setting:
+- control disk usage;
+- maintain a sufficient history window for analyzing trends and incidents;
+- avoid performance degradation due to uncontrolled TSDB growth.
+
+#### Persistence
+Prometheus data is stored in the volume:
+- `prometheus-data:/prometheus`
+
+Therefore, after `docker compose down` / `up -d`, data is not lost (unless the volume is deleted with the `-v` command).
+
+#### Other stack components
+- **Loki** and **Grafana** also use persistent volumes (`loki-data`, `grafana-data`), which ensures data/dashboards persist across restarts.
+- In this lab, the primary retention policy is explicitly set for Prometheus.
+
+3) I checked that data is still alive since I have dashboards after `compose down` from previous lab
+![alt text](image-16.png)
+![alt text](image-17.png)
