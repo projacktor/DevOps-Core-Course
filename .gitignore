@@ -398,3 +398,4 @@ terraform.rc
 *.pem
 /aws/
 test
+.github/agents/*
