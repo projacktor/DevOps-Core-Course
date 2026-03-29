@@ -1,0 +1,70 @@
+name: Ansible Deployment
+
+on:
+  push:
+    branches: [main, master, lab*]
+    paths:
+      - "labs/ansible/**"
+      - ".github/workflows/ansible-deploy.yaml"
+  pull_request:
+    branches: [main, master, lab*]
+    paths:
+      - "labs/ansible/**"
+
+jobs:
+  lint:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install ansible ansible-lint
+
+      - name: Run ansible-lint
+        run: |
+          cd labs/ansible
+          ansible-lint playbooks/*.yaml
+
+  deploy:
+    name: Deploy Application
+    needs: lint
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Deploy with Ansible
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          cd labs/ansible
+          echo "$ANSIBLE_VAULT_PASSWORD" > /tmp/vault_pass
+          ansible-playbook playbooks/deploy.yaml \
+            -i inventory/hosts.ini \
+            --vault-password-file /tmp/vault_pass \
+            --tags "app_deploy"
+          rm /tmp/vault_pass
+
+      - name: Verify Deployment
+        run: |
+          sleep 10
+          curl -f http://${{ secrets.VM_HOST }}:8000 || exit 1
+          curl -f http://${{ secrets.VM_HOST }}:8000/health || exit 1
