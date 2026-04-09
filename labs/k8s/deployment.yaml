@@ -45,3 +45,14 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 2
           failureThreshold: 3
+  env:
+  - name: APP_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: {{ default (printf "%s-credentials" (include "python-info-service.fullname" .)) .Values.secrets.name }}
+        key: username
+  - name: APP_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: {{ default (printf "%s-credentials" (include "python-info-service.fullname" .)) .Values.secrets.name }}
+        key: password

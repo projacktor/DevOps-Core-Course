@@ -44,6 +44,13 @@ readinessProbe:
   timeoutSeconds: 2
   failureThreshold: 3
 
+secrets:
+  enabled: true
+  name: "app-credentials"
+  data:
+    username: "change-me"
+    password: "change-me"
+
 hooks:
   enabled: true
   image:

@@ -33,3 +33,6 @@ spec:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: {{ default (printf "%s-credentials" (include "python-info-service.fullname" .)) .Values.secrets.name }}
