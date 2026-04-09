@@ -14,6 +14,9 @@ service:
   targetPort: 8080
   nodePort: 30080
 
+serviceAccount:
+  name: default
+
 resources:
   requests:
     cpu: 100m
@@ -50,6 +53,12 @@ secrets:
   data:
     username: "change-me"
     password: "change-me"
+
+vault:
+  enabled: false
+  role: "python-info-service"
+  secretPath: "secret/data/python-info-service"
+  injectFile: "app.env"
 
 hooks:
   enabled: true

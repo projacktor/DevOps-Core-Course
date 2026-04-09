@@ -18,7 +18,19 @@ spec:
     metadata:
       labels:
         {{- include "python-info-service.selectorLabels" . | nindent 8 }}
+      {{- if .Values.vault.enabled }}
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: {{ .Values.vault.role | quote }}
+        vault.hashicorp.com/agent-inject-secret-{{ .Values.vault.injectFile }}: {{ .Values.vault.secretPath | quote }}
+        vault.hashicorp.com/agent-inject-template-{{ .Values.vault.injectFile }}: |
+          {{ "{{- with secret \"" }}{{ .Values.vault.secretPath }}{{ "\" -}}" }}
+          export APP_USERNAME="{{ "{{ .Data.data.username }}" }}"
+          export APP_PASSWORD="{{ "{{ .Data.data.password }}" }}"
+          {{ "{{- end }}" }}
+      {{- end }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
         - name: {{ include "python-info-service.name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -33,6 +45,8 @@ spec:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- if .Values.secrets.enabled }}
           envFrom:
             - secretRef:
                 name: {{ default (printf "%s-credentials" (include "python-info-service.fullname" .)) .Values.secrets.name }}
+          {{- end }}
