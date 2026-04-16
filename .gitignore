@@ -399,4 +399,4 @@ terraform.rc
 /aws/
 test
 .github/agents/*
-data/visits.json
+visits.json
