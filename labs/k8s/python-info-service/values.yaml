@@ -54,6 +54,14 @@ secrets:
     username: "change-me"
     password: "change-me"
 
+appConfig:
+  name: "python-info-service"
+  environment: "dev"
+  featureFlags:
+    debug: true
+    metrics: true
+    newUI: false
+
 vault:
   enabled: false
   role: "python-info-service"

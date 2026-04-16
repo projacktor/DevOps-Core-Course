@@ -45,8 +45,22 @@ spec:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
-          {{- if .Values.secrets.enabled }}
           envFrom:
+            - configMapRef:
+                name: {{ include "python-info-service.fullname" . }}-env
+          {{- if .Values.secrets.enabled }}
             - secretRef:
                 name: {{ default (printf "%s-credentials" (include "python-info-service.fullname" .)) .Values.secrets.name }}
           {{- end }}
+          volumeMounts:
+            - name: app-config
+              mountPath: /config/config.json
+              subPath: config.json
+              readOnly: true
+      volumes:
+        - name: app-config
+          configMap:
+            name: {{ include "python-info-service.fullname" . }}-config
+            items:
+              - key: config.json
+                path: config.json

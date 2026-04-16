@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "python-info-service.fullname" . }}-env
+  labels:
+    {{- include "python-info-service.labels" . | nindent 4 }}
+data:
+  APP_NAME: {{ .Values.appConfig.name | quote }}
+  APP_ENV: {{ .Values.appConfig.environment | quote }}
+  APP_FEATURE_DEBUG: {{ .Values.appConfig.featureFlags.debug | quote }}
+  APP_FEATURE_METRICS: {{ .Values.appConfig.featureFlags.metrics | quote }}
+  APP_FEATURE_NEW_UI: {{ .Values.appConfig.featureFlags.newUI | quote }}

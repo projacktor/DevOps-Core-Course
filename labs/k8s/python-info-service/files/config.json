@@ -1,0 +1,9 @@
+{
+  "applicationName": "python-info-service",
+  "environment": "dev",
+  "featureFlags": {
+    "debug": true,
+    "metrics": true,
+    "newUI": false
+  }
+}
