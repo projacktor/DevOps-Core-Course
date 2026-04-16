@@ -129,7 +129,7 @@ def count_visit(client_ip):
     visit = datetime.now()
     with open("data/visits.json", "r") as file:
         data = json.load(file)
-    data["visits"].append({"datetime": visit, "IP": client_ip})
+    data["visits"].append({"datetime": visit.isoformat(), "IP": client_ip})
     data["total"] += 1
     with open("data/visits.json", "w") as file:
         json.dump(data, file)
