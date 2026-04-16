@@ -127,6 +127,9 @@ def get_uptime():
 
 def count_visit(client_ip):
     visit = datetime.now()
+    if not os.path.exists("data/visits.json"):
+        with open("data/visits.json", "w") as file:
+            json.dump({"visits": [], "total": 0}, file)
     with open("data/visits.json", "r") as file:
         data = json.load(file)
     data["visits"].append({"datetime": visit.isoformat(), "IP": client_ip})
