@@ -57,6 +57,10 @@ spec:
               mountPath: /config/config.json
               subPath: config.json
               readOnly: true
+            {{- if .Values.persistence.enabled }}
+            - name: data-volume
+              mountPath: /app/data
+            {{- end }}
       volumes:
         - name: app-config
           configMap:
@@ -64,3 +68,8 @@ spec:
             items:
               - key: config.json
                 path: config.json
+        {{- if .Values.persistence.enabled }}
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: {{ include "python-info-service.fullname" . }}-data
+        {{- end }}

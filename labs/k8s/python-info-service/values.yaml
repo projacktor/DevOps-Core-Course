@@ -88,3 +88,8 @@ hooks:
       - sh
       - -c
       - echo Post-install smoke test started && sleep 5 && echo Post-install smoke test finished
+
+persistence:
+  enabled: true
+  size: 100Mi
+  storageClass: "" 
