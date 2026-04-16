@@ -129,8 +129,8 @@ def count_visit(client_ip):
     visit = datetime.now()
     # Ensure the data directory exists
     os.makedirs("data", exist_ok=True)
-    if not os.path.exists("data/visits.json"):
-        with open("data/visits.json", "w") as file:
+    if not os.path.exists("./data/visits.json"):
+        with open("./data/visits.json", "w") as file:
             json.dump({"visits": [], "total": 0}, file)
     with open("data/visits.json", "r") as file:
         data = json.load(file)

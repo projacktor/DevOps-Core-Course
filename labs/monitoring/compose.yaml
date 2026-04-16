@@ -4,6 +4,8 @@ services:
     image: projacktor/python-info-service:latest
     ports:
       - "8080:8080"
+    volumes:
+      - ../app_python/data:/app/data
     networks:
       - loki-network
     labels:
