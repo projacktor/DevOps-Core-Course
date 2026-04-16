@@ -125,6 +125,16 @@ def get_uptime():
     return {"seconds": seconds, "human": f"{hours} hours, {minutes} minutes"}
 
 
+def count_visit(client_ip):
+    visit = datetime.now()
+    with open("data/visits.json", "r") as file:
+        data = json.load(file)
+    data["visits"].append({"datetime": visit, "IP": client_ip})
+    data["total"] += 1
+    with open("data/visits.json", "w") as file:
+        json.dump(data, file)
+
+
 # Exception Handlers
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
@@ -226,6 +236,7 @@ async def log_requests(request: Request, call_next):
 async def root(request: Request):
     """Main endpoint - service and system information."""
     client_ip = request.client.host if request.client else "unknown"
+    count_visit(client_ip)
     logger.info(
         "endpoint",
         extra={
@@ -301,6 +312,13 @@ async def favicon():
 async def metrics():
     """Prometheus metrics endpoint."""
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/visit")
+async def visit():
+    with open("data/visits.json", "r") as f:
+        visits = json.load(f)
+        return {"total": visits["total"], "all": visits["visits"]}
 
 
 http_requests_total = Counter(
