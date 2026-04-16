@@ -44,11 +44,11 @@ pydantic-extra-types==2.11.0
 pydantic-settings==2.12.0
 pydantic_core==2.41.5
 pyflakes==3.4.0
-Pygments==2.19.2
+Pygments==2.20.0
 pytest==9.0.2
 python-dotenv==1.2.1
 python-json-logger==4.0.0
-python-multipart==0.0.22
+python-multipart==0.0.26
 pytokens==0.4.1
 PyYAML==6.0.3
 referencing==0.37.0
