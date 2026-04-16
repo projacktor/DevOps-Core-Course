@@ -356,7 +356,7 @@ system_info_duration = Histogram(
 external_service_calls = Counter(
     "devops_info_external_service_calls_total",
     "API calls to external services",
-    ["service", "result"],  # keep low-cardinality (e.g., result: ok|error|timeout)
+    ["service", "result"],  # keep low-cardinality (e.g., result: ok|error|timeout) 
 )
 
 cache_items = Gauge(
