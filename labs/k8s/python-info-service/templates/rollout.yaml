@@ -1,17 +1,11 @@
-{{- if .Values.deployment.enabled }}
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "python-info-service.fullname" . }}
   labels:
     {{- include "python-info-service.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  strategy:
-    type: {{ .Values.strategy.type }}
-    rollingUpdate:
-      maxSurge: {{ .Values.strategy.rollingUpdate.maxSurge }}
-      maxUnavailable: {{ .Values.strategy.rollingUpdate.maxUnavailable }}
   selector:
     matchLabels:
       {{- include "python-info-service.selectorLabels" . | nindent 6 }}
@@ -36,16 +30,21 @@ spec:
         - name: {{ include "python-info-service.name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
+
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+
           envFrom:
             - configMapRef:
                 name: {{ include "python-info-service.fullname" . }}-env
@@ -53,6 +52,7 @@ spec:
             - secretRef:
                 name: {{ default (printf "%s-credentials" (include "python-info-service.fullname" .)) .Values.secrets.name }}
           {{- end }}
+
           volumeMounts:
             - name: app-config
               mountPath: /config/config.json
@@ -62,6 +62,7 @@ spec:
             - name: data-volume
               mountPath: /app/data
             {{- end }}
+
       volumes:
         - name: app-config
           configMap:
@@ -74,4 +75,8 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "python-info-service.fullname" . }}-data
         {{- end }}
-{{- end }}
+  strategy:
+    blueGreen:
+      activeService: {{ include "python-info-service.fullname" . }}
+      previewService: {{ include "python-info-service.fullname" . }}-preview
+      autoPromotionEnabled: false
