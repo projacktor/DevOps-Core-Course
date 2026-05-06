@@ -1,12 +1,12 @@
-{{- if .Values.rollout.enabled }}
+{{- if .Values.statefulset.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "python-info-service.fullname" . }}-preview
+  name: {{ include "python-info-service.fullname" . }}-headless
   labels:
     {{- include "python-info-service.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  clusterIP: None
   selector:
     {{- include "python-info-service.selectorLabels" . | nindent 4 }}
   ports:

@@ -3,6 +3,15 @@ replicaCount: 3
 deployment:
   enabled: false
 
+rollout:
+  enabled: false
+
+statefulset:
+  enabled: true
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+
 nameOverride: ""
 fullnameOverride: ""
 
@@ -52,7 +61,7 @@ readinessProbe:
 
 secrets:
   enabled: true
-  name: "app-credentials"
+  name: ""
   data:
     username: "change-me"
     password: "change-me"
