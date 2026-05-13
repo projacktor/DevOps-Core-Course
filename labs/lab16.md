@@ -73,7 +73,9 @@ kubectl get pods -n monitoring
 **Access Grafana:**
 ```bash
 kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
-# Default: admin / prom-operator
+# Default login: admin
+# To get password:
+kubectl -n monitoring get secret monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
 ```
 
 **Answer these questions using dashboards:**
