@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+spec:
+  initContainers:
+  - name: init-download
+    image: busybox:1.36
+    command: ['sh', '-c', 'wget -O /work-dir/index.html https://example.com && echo Download complete']
+    volumeMounts:
+    - name: workdir
+      mountPath: /work-dir
+  - name: wait-for-service
+    image: busybox:1.36
+    command: ['sh', '-c', 'until nslookup vault.default.svc.cluster.local; do sleep 2; done && echo Service found']
+  containers:
+  - name: main-app
+    image: busybox:1.36
+    command: ['sh', '-c', 'echo Init containers completed; cat /data/index.html; sleep 3600']
+    volumeMounts:
+    - name: workdir
+      mountPath: /data
+  volumes:
+  - name: workdir
+    emptyDir: {}
