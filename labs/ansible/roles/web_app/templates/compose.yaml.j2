@@ -1,0 +1,11 @@
+services:
+  {{ web_app_container_name }}:
+    image: {{ web_app_image }}:{{ web_app_image_tag }}
+    container_name: {{ web_app_container_name }}
+    ports:
+      - "{{ web_app_host_port }}:{{ web_app_port }}"
+    environment:
+      {% for key, value in web_app_env.items() %}
+      {{ key }}: "{{ value }}"
+      {% endfor %}
+    restart: {{ web_app_restart_policy }}

@@ -1,0 +1,6 @@
+config:
+  aws:region: us-east-1
+  devops-lab:instanceType: t3.micro
+  devops-lab:keyName: vockey
+  devops-lab:volumeSize: "16"
+  devops-lab:instanceName: DevOps-Lab

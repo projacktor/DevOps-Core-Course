@@ -1,0 +1,32 @@
+# Tests
+tests/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Spring Boot
+*.original
+
+# VCS
+.git
+.gitignore
+
+# Documentation
+docs/
+*.md

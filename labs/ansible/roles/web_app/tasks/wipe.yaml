@@ -1,0 +1,28 @@
+---
+- name: Wipe web application
+  when: web_app_wipe | default(false) | bool
+  tags:
+    - web_app_wipe
+  block:
+    - name: Stop and remove containers (Compose down)
+      community.docker.docker_compose_v2:
+        project_src: "/opt/{{ web_app_container_name }}"
+        state: absent
+        remove_orphans: true
+      failed_when: false
+
+    - name: Remove application directory
+      ansible.builtin.file:
+        path: "/opt/{{ web_app_container_name }}"
+        state: absent
+
+    - name: Remove Docker image (optional cleanup)
+      community.docker.docker_image:
+        name: "{{ web_app_image }}:{{ web_app_image_tag }}"
+        state: absent
+        force_absent: true
+      failed_when: false
+
+    - name: Log wipe completion
+      ansible.builtin.debug:
+        msg: "Application {{ web_app_container_name }} wiped successfully"
